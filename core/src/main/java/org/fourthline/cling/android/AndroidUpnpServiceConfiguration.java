@@ -86,33 +86,31 @@ public class AndroidUpnpServiceConfiguration extends DefaultUpnpServiceConfigura
     @Override
     public StreamClient createStreamClient() {
         // Use Jetty
-        return new StreamClientImpl(
-            new StreamClientConfigurationImpl(
-                getSyncProtocolExecutorService()
-            ) {
-                @Override
-                public String getUserAgentValue(int majorVersion, int minorVersion) {
-                    // TODO: UPNP VIOLATION: Synology NAS requires User-Agent to contain
-                    // "Android" to return DLNA protocolInfo required to stream to Samsung TV
-			        // see: http://two-play.com/forums/viewtopic.php?f=6&t=81
-                    ServerClientTokens tokens = new ServerClientTokens(majorVersion, minorVersion);
-                    tokens.setOsName("Android");
-                    tokens.setOsVersion(Build.VERSION.RELEASE);
-                    return tokens.toString();
-                }
+        StreamClientConfigurationImpl configuration = new StreamClientConfigurationImpl(getSyncProtocolExecutorService()) {
+            @Override
+            public String getUserAgentValue(int majorVersion, int minorVersion) {
+                // TODO: UPNP VIOLATION: Synology NAS requires User-Agent to contain
+                // "Android" to return DLNA protocolInfo required to stream to Samsung TV
+                // see: http://two-play.com/forums/viewtopic.php?f=6&t=81
+                ServerClientTokens tokens = new ServerClientTokens(majorVersion, minorVersion);
+                tokens.setOsName("Android");
+                tokens.setOsVersion(Build.VERSION.RELEASE);
+                return tokens.toString();
             }
-        );
+        };
+        configuration.setTimeoutSeconds(40);
+        return new StreamClientImpl(configuration);
     }
 
     @Override
     public StreamServer createStreamServer(NetworkAddressFactory networkAddressFactory) {
         // Use Jetty, start/stop a new shared instance of JettyServletContainer
-        return new AsyncServletStreamServerImpl(
-            new AsyncServletStreamServerConfigurationImpl(
+        AsyncServletStreamServerConfigurationImpl configuration = new AsyncServletStreamServerConfigurationImpl(
                 JettyServletContainer.INSTANCE,
                 networkAddressFactory.getStreamListenPort()
-            )
         );
+        configuration.setAsyncTimeoutSeconds(40);
+        return new AsyncServletStreamServerImpl(configuration);
     }
 
     @Override

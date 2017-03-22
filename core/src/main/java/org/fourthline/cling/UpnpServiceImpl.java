@@ -140,8 +140,8 @@ public class UpnpServiceImpl implements UpnpService {
             public void run() {
                 log.info(">>> Shutting down UPnP service...");
                 shutdownRegistry();
-                shutdownRouter();
                 shutdownConfiguration();
+                shutdownRouter();
                 log.info("<<< UPnP service shutdown completed");
             }
         };
@@ -155,23 +155,32 @@ public class UpnpServiceImpl implements UpnpService {
 
     protected void shutdownRegistry() {
         getRegistry().shutdown();
+        log.warning("shutdown registry...");
     }
 
     protected void shutdownRouter() {
-        try {
-            getRouter().shutdown();
-        } catch (RouterException ex) {
-            Throwable cause = Exceptions.unwrap(ex);
-            if (cause instanceof InterruptedException) {
-                log.log(Level.INFO, "Router shutdown was interrupted: " + ex, cause);
-            } else {
-                log.log(Level.SEVERE, "Router error on shutdown: " + ex, cause);
+        int maxRetryTimes = 3;
+        for (int retry = maxRetryTimes - 1; retry >= 0; --retry) {
+            try {
+                getRouter().shutdown();
+                break;
+            } catch (RouterException ex) {
+                Throwable cause = Exceptions.unwrap(ex);
+                if (cause instanceof InterruptedException) {
+                    log.log(Level.INFO, "Router shutdown was interrupted: " + ex, cause);
+                    break;
+                } else {
+                    log.log(Level.SEVERE, "Router error on shutdown: " + ex, cause);
+                    log.log(Level.SEVERE, "left retry times:" + retry);
+                }
             }
         }
+        log.warning("shutdown router...");
     }
 
     protected void shutdownConfiguration() {
         getConfiguration().shutdown();
+        log.warning("shutdown configuration...");
     }
 
 }
