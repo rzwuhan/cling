@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.logging.Level;
@@ -104,7 +105,19 @@ public class AsyncServletStreamServerImpl implements StreamServer<AsyncServletSt
                 if (log.isLoggable(Level.FINE))
                 	log.fine(String.format("HttpServlet.service(): id: %3d, request URI: %s", counter, req.getRequestURI()));
 
-                AsyncContext async = req.startAsync();
+                AsyncContext async = null;
+
+                try {
+                    Method startAsyncMethod = req.getClass().getMethod("startAsync");
+                    async = (AsyncContext) startAsyncMethod.invoke(req);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                if (async == null) {
+                    return;
+                }
+
                 async.setTimeout(getConfiguration().getAsyncTimeoutSeconds()*1000);
 
                 async.addListener(new AsyncListener() {
